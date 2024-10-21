@@ -4,11 +4,9 @@ import org.opensearch.dataprepper.model.buffer.Buffer;
 import org.opensearch.dataprepper.model.event.Event;
 import org.opensearch.dataprepper.model.record.Record;
 import org.opensearch.dataprepper.plugins.source.saas.crawler.coordination.state.SaasWorkerProgressState;
-import org.opensearch.dataprepper.plugins.source.saas.crawler.model.Item;
 import org.opensearch.dataprepper.plugins.source.saas.crawler.model.ItemInfo;
 
 import java.util.Iterator;
-import java.util.Optional;
 
 /**
  * Interface for saas client. This interface can be implemented by different saas clients.
@@ -33,16 +31,6 @@ public interface SaasClient {
      */
     Iterator<ItemInfo> listItems();
 
-    /**
-     * This API returns most recent change log token of a SaaS Client. It will be called by SDK to
-     * store the token, so that it can be utilized in next sync call if change log is
-     * enabled.
-     *
-     * @return optional of token String
-     */
-    default Optional<String> getLatestChangeLogToken() {
-        return Optional.empty();
-    }
 
     /**
      * Set configuration for saas client.

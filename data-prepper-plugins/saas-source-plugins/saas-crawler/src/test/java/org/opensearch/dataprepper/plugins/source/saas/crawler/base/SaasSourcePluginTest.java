@@ -85,6 +85,16 @@ public class SaasSourcePluginTest {
     }
 
     @Test
+    void areAcknowledgementsEnabledTest() {
+        assertFalse(saasSourcePlugin.areAcknowledgementsEnabled());
+    }
+
+    @Test
+    void saasSourceConfigGetterTest(){
+        assertNotNull(saasSourcePlugin.getSourceConfig());
+    }
+
+    @Test
     void startTest() {
         saasSourcePlugin.setEnhancedSourceCoordinator(sourceCoordinator);
         saasSourcePlugin.start(buffer);
