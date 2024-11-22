@@ -15,9 +15,23 @@ import static org.opensearch.dataprepper.plugins.source.jira.utils.Constants.OAU
 @Slf4j
 public class JiraConfigHelper {
 
-    public static final String ISSUE_STATUS_FILTER = "status";
-    public static final String ISSUE_TYPE_FILTER = "issuetype";
+    /**
+     * Get Inclusion Patterns from repository configuration.
+     *
+     * @return List Issue Status Filter.
+     */
+    public static List<String> getInclusionPatterns(JiraSourceConfig repositoryConfiguration) {
+        return repositoryConfiguration.getInclusionPatterns();
+    }
 
+    /**
+     * Get Exclusion Patterns from repository configuration.
+     *
+     * @return List Issue Status Filter.
+     */
+    public static List<String> getExclusionPatterns(JiraSourceConfig repositoryConfiguration) {
+        return repositoryConfiguration.getExclusionPatterns();
+    }
 
     /**
      * Get Issue Status Filter from repository configuration.

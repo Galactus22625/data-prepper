@@ -48,7 +48,7 @@ public class JiraSourceConfig implements CrawlerSourceConfig {
      * Optional Inclusion patterns for filtering some tickets
      */
     @JsonProperty("inclusion_patterns")
-    @Size(max = 100, message = "inclusion pattern filters should not be more than 1000")
+    @Size(max = 1000, message = "inclusion pattern filters should not be more than 1000")
     private List<String> inclusionPatterns;
 
     /**

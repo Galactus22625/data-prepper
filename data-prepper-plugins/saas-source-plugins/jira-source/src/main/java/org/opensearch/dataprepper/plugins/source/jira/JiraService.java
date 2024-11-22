@@ -12,9 +12,14 @@ import org.opensearch.dataprepper.plugins.source.source_crawler.model.ItemInfo;
 import org.springframework.util.CollectionUtils;
 
 import javax.inject.Named;
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Dictionary;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,8 +107,100 @@ public class JiraService {
      */
     private void addItemsToQueue(List<IssueBean> issueList, Queue<ItemInfo> itemInfoQueue) {
         issueList.forEach(issue -> {
-            itemInfoQueue.add(JiraItemInfo.builder().withEventTime(Instant.now()).withIssueBean(issue).build());
+            if (satisfiesInclusionExclusionPatterns(issue, jiraSourceConfig)) {
+                itemInfoQueue.add(JiraItemInfo.builder().withEventTime(Instant.now()).withIssueBean(issue).build());
+            }
         });
+    }
+
+    /**
+     * Method for checking if an issue satisfies the inclusion pattern and exclusion pattern filters
+     * returns false if it includes something from exclusion pattern
+     * if inclusion patterns are specified, returns false if does not contain one of the inclusion patterns
+     * otherwise returns true
+     *
+     * @param issueBean Input Paramater
+     * @param configuration Input Parameter
+     * @return boolean
+     */
+    private boolean satisfiesInclusionExclusionPatterns(IssueBean issueBean, JiraSourceConfig configuration) {
+        List<String> inclusionPatterns = JiraConfigHelper.getInclusionPatterns(configuration);
+        List<String> exclusionPatterns = JiraConfigHelper.getExclusionPatterns(configuration);
+
+        if (CollectionUtils.isEmpty(exclusionPatterns) && CollectionUtils.isEmpty(inclusionPatterns)) {
+            return true;
+        }
+
+        List<String> paragraph = getParagraphFromIssue(issueBean);
+        String title;
+        try {
+            title = Optional.ofNullable(issueBean.getFields()).map(fields -> (String) fields.get("summary")).orElse("");
+        } catch (ClassCastException | NullPointerException e) {
+            title = "";
+        }
+
+        if (!CollectionUtils.isEmpty(exclusionPatterns)) {
+            for (String pattern : exclusionPatterns) {
+                for (String paragraphText : paragraph) {
+                    if (paragraphText.contains(pattern)) {
+                        return false;
+                    }
+                }
+                if (title.contains(pattern)) {
+                    return false;
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(inclusionPatterns)) {
+            boolean satisfied = false;
+            for (String pattern : inclusionPatterns) {
+                for (String paragraphText : paragraph) {
+                    if (paragraphText.contains(pattern)) {
+                        satisfied = true;
+                        break;
+                    }
+                }
+                if (title.contains(pattern)) {
+                    satisfied = true;
+                }
+                if (satisfied) {
+                    break;
+                }
+            }
+            return satisfied;
+        }
+        return true;
+    }
+
+    /**
+     * get paragraph text from an issue Bean
+     *
+     * @param issueBean Input Parameter
+     * @return List of paragraph text from the issue bean
+     *
+     */
+    private List<String> getParagraphFromIssue(IssueBean issueBean){
+        List<String> paragraph = new ArrayList<>();
+        try {
+            List<Map<String, Object>> content = Optional.ofNullable(issueBean.getFields())
+                    .map(fields -> (Map<String, Object>) fields.get("description"))
+                    .map(description -> (List<Map<String, Object>>) description.get("content"))
+                    .orElse(Collections.emptyList());
+            for (Map<String, Object> contentMap : content) {
+                if (contentMap.get("type").equals("paragraph")) {
+                    List<Map<String, Object>> innerContent = (List<Map<String, Object>>) contentMap.get("content");
+                    for (Map<String, Object> innerContentMap : innerContent) {
+                        if (innerContentMap.get("type").equals("text")) {
+                            paragraph.add((String) innerContentMap.get("text"));
+                        }
+                    }
+                }
+            }
+        }
+        catch (ClassCastException | NullPointerException e) {
+            //empty catch block
+        }
+        return paragraph;
     }
 
 
