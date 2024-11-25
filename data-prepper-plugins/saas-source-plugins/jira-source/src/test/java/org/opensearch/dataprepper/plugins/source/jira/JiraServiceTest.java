@@ -83,7 +83,9 @@ public class JiraServiceTest {
     public static JiraSourceConfig createJiraConfiguration(String auth_type,
                                                            List<String> issueType,
                                                            List<String> issueStatus,
-                                                           List<String> projectKey) throws JsonProcessingException {
+                                                           List<String> projectKey,
+                                                           List<String> inclusionFilter,
+                                                           List<String> exclusionFilter) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, String> connectorCredentialsMap = new HashMap<>();
         connectorCredentialsMap.put("auth_type", auth_type);
@@ -94,6 +96,8 @@ public class JiraServiceTest {
         jiraSourceConfigMap.put("issue_types", issueType);
         jiraSourceConfigMap.put("statuses", issueStatus);
         jiraSourceConfigMap.put("projects", projectKey);
+        jiraSourceConfigMap.put("inclusion_patterns", inclusionFilter);
+        jiraSourceConfigMap.put("exclusion_patterns", exclusionFilter);
 
 
         String jiraSourceConfigJsonString = objectMapper.writeValueAsString(jiraSourceConfigMap);
@@ -110,7 +114,9 @@ public class JiraServiceTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
-        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey);
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
+        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraService jiraService = new JiraService(jiraSourceConfig, jiraRestClient);
         assertNotNull(jiraService);
         when(jiraRestClient.getIssue(anyString())).thenReturn("test String");
@@ -122,10 +128,12 @@ public class JiraServiceTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
         issueType.add("Task");
         issueStatus.add("Done");
         projectKey.add("KAN");
-        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey);
+        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraService jiraService = spy(new JiraService(jiraSourceConfig, jiraRestClient));
         List<IssueBean> mockIssues = new ArrayList<>();
         IssueBean issue1 = createIssueBean(false, false);
@@ -152,8 +160,10 @@ public class JiraServiceTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
         issueType.add("Task");
-        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey);
+        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraService jiraService = spy(new JiraService(jiraSourceConfig, jiraRestClient));
         List<IssueBean> mockIssues = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
@@ -178,6 +188,8 @@ public class JiraServiceTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
         issueType.add("Task");
         issueStatus.add("Done");
         projectKey.add("Bad Project Key");
@@ -185,7 +197,7 @@ public class JiraServiceTest {
         projectKey.add("!@#$");
         projectKey.add("AAAAAAAAAAAAAA");
 
-        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey);
+        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraService jiraService = new JiraService(jiraSourceConfig, jiraRestClient);
 
         Instant timestamp = Instant.ofEpochSecond(0);
@@ -199,8 +211,11 @@ public class JiraServiceTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
         issueType.add("Task");
-        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey);
+
+        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraService jiraService = spy(new JiraService(jiraSourceConfig, jiraRestClient));
 
         doThrow(RuntimeException.class).when(jiraRestClient).getAllIssues(any(StringBuilder.class), anyInt(), any(JiraSourceConfig.class));
@@ -210,6 +225,63 @@ public class JiraServiceTest {
 
         assertThrows(RuntimeException.class, () -> jiraService.getJiraEntities(jiraSourceConfig, timestamp, itemInfoQueue));
     }
+
+    @Test
+    public void testImproperFieldWithExclusionPatterns() throws JsonProcessingException {
+        List<String> issueType = new ArrayList<>();
+        List<String> issueStatus = new ArrayList<>();
+        List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
+        exclusionFilter.add("exclude");
+
+        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
+        JiraService jiraService = new JiraService(jiraSourceConfig, jiraRestClient);
+
+        List<IssueBean> mockIssues = new ArrayList<>();
+        IssueBean issue1 = createIssueBean(false, false);
+        mockIssues.add(issue1);
+
+        SearchResults mockSearchResults = mock(SearchResults.class);
+        when(mockSearchResults.getIssues()).thenReturn(mockIssues);
+        when(mockSearchResults.getTotal()).thenReturn(mockIssues.size());
+
+        doReturn(mockSearchResults).when(jiraRestClient).getAllIssues(any(StringBuilder.class), anyInt(), any(JiraSourceConfig.class));
+
+        Instant timestamp = Instant.ofEpochSecond(0);
+        Queue<ItemInfo> itemInfoQueue = new ConcurrentLinkedQueue<>();
+        jiraService.getJiraEntities(jiraSourceConfig, timestamp, itemInfoQueue);
+        assertEquals(mockIssues.size(), itemInfoQueue.size());
+    }
+//
+//    @Test
+//    public void testExclusionPattern() throws JsonProcessingException {
+//        List<String> issueType = new ArrayList<>();
+//        List<String> issueStatus = new ArrayList<>();
+//        List<String> projectKey = new ArrayList<>();
+//        List<String> inclusionFilter = new ArrayList<>();
+//        List<String> exclusionFilter = new ArrayList<>();
+//        exclusionFilter.add("exclude");
+//
+//        JiraSourceConfig jiraSourceConfig = createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
+//        JiraService jiraService = new JiraService(jiraSourceConfig, jiraRestClient);
+//
+//        List<IssueBean> mockIssues = new ArrayList<>();
+//        IssueBean issue1 = createIssueBean(false, false);
+//
+//        mockIssues.add(issue1);
+//
+//        SearchResults mockSearchResults = mock(SearchResults.class);
+//        when(mockSearchResults.getIssues()).thenReturn(mockIssues);
+//        when(mockSearchResults.getTotal()).thenReturn(mockIssues.size());
+//
+//        doReturn(mockSearchResults).when(jiraRestClient).getAllIssues(any(StringBuilder.class), anyInt(), any(JiraSourceConfig.class));
+//
+//        Instant timestamp = Instant.ofEpochSecond(0);
+//        Queue<ItemInfo> itemInfoQueue = new ConcurrentLinkedQueue<>();
+//        jiraService.getJiraEntities(jiraSourceConfig, timestamp, itemInfoQueue);
+//        assertEquals(mockIssues.size(), itemInfoQueue.size());
+//    }
 
 
     private IssueBean createIssueBean(boolean nullFields, boolean createdNull) {

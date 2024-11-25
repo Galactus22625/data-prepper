@@ -105,8 +105,10 @@ public class JiraRestClientTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
         issueType.add("Task");
-        JiraSourceConfig jiraSourceConfig = JiraServiceTest.createJiraConfiguration(OAUTH2, issueType, issueStatus, projectKey);
+        JiraSourceConfig jiraSourceConfig = JiraServiceTest.createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraRestClient jiraRestClient = new JiraRestClient(restTemplate, authConfig);
         SearchResults mockSearchResults = mock(SearchResults.class);
         doReturn("http://mock-service.jira.com/").when(authConfig).getUrl();
@@ -120,8 +122,10 @@ public class JiraRestClientTest {
         List<String> issueType = new ArrayList<>();
         List<String> issueStatus = new ArrayList<>();
         List<String> projectKey = new ArrayList<>();
+        List<String> inclusionFilter = new ArrayList<>();
+        List<String> exclusionFilter = new ArrayList<>();
         issueType.add("Task");
-        JiraSourceConfig jiraSourceConfig = JiraServiceTest.createJiraConfiguration(BASIC, issueType, issueStatus, projectKey);
+        JiraSourceConfig jiraSourceConfig = JiraServiceTest.createJiraConfiguration(BASIC, issueType, issueStatus, projectKey, inclusionFilter, exclusionFilter);
         JiraRestClient jiraRestClient = new JiraRestClient(restTemplate, authConfig);
         SearchResults mockSearchResults = mock(SearchResults.class);
         when(authConfig.getUrl()).thenReturn("https://example.com/");
