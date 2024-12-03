@@ -14,10 +14,10 @@ import org.opensearch.dataprepper.core.peerforwarder.discovery.DiscoveryMode;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Class to hold configuration for Core Peer Forwarder in {@link DataPrepperConfiguration},
@@ -122,7 +122,7 @@ public class PeerForwarderConfiguration {
         setFingerprintVerificationOnly(sslFingerprintVerificationOnly);
         setAuthentication(authentication);
         setAcmCertificateArn(acmCertificateArn);
-        this.acmPrivateKeyPassword = acmPrivateKeyPassword;
+        setAcmPrivateKeyPassword(acmPrivateKeyPassword);
         setAcmCertificateTimeoutMillis(acmCertificateTimeoutMillis);
         setDiscoveryMode(discoveryMode);
         setAwsCloudMapNamespaceName(awsCloudMapNamespaceName);
@@ -387,11 +387,23 @@ public class PeerForwarderConfiguration {
     }
 
     private void setAcmCertificateArn(final String acmCertificateArn) {
-        if (!useAcmCertificateForSsl || StringUtils.isNotEmpty(acmCertificateArn)) {
-            this.acmCertificateArn = acmCertificateArn;
+        if (useAcmCertificateForSsl) {
+            if (StringUtils.isNotEmpty(acmCertificateArn)) {
+                this.acmCertificateArn = acmCertificateArn;
+            } else {
+                throw new IllegalArgumentException("ACM certificate ARN cannot be empty if ACM certificate is ued for SSL.");
+            }
         }
-        else {
-            throw new IllegalArgumentException("ACM certificate ARN cannot be empty if ACM certificate is ued for SSL.");
+    }
+
+    private void setAcmPrivateKeyPassword(final String acmPrivateKeyPassword) {
+        if (useAcmCertificateForSsl) {
+            if (StringUtils.isNotEmpty(acmPrivateKeyPassword)) {
+                this.acmPrivateKeyPassword = acmPrivateKeyPassword;
+                }
+            else {
+                throw new IllegalArgumentException("ACM Private Key Password cannot be null or empty if ACM certificate is ued for SSL");
+            }
         }
     }
 

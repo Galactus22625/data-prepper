@@ -1,4 +1,5 @@
 ssl: true
 use_acm_certificate_for_ssl: true
 acm_certificate_arn: "acm_arn"
+acm_private_key_password: "acm_private_key_password"
 aws_region: "aws_region"
